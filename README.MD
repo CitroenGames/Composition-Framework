@@ -14,9 +14,9 @@ This repository contains a simple implementation of an Entity Component System (
 
 The project consists of three main files:
 
-1. `ecs.h`: Header file containing the core ECS classes and interfaces.
-2. `ecs.cpp`: Implementation of the ECS framework.
-3. `main.cpp`: Example usage of the ECS framework.
+1. [`src/ecs.h`](https://github.com/CitroenGames/ECS/blob/master/src/ECS.h): Header file containing the core ECS classes and interfaces.
+2. [`src/ecs.cpp`](https://github.com/CitroenGames/ECS/blob/master/src/ECS.cpp): Implementation of the ECS framework.
+3. [`example/main.cpp`](https://github.com/CitroenGames/ECS/blob/master/example/main.cpp): Example usage of the ECS framework.
 
 ## Dependencies
 
@@ -28,22 +28,58 @@ Here's a basic example of how to use the ECS framework:
 
 ```cpp
 #include "ecs.h"
+#include <iostream>
+#include <fstream>
 
-// Define your components
 struct PositionComponent : ECS::Component {
     float x, y;
-    // ... (implementation details)
+    PositionComponent(float x = 0, float y = 0) : x(x), y(y) {}
+
+    ECS::json Serialize() const override {
+        return {{"x", x}, {"y", y}};
+    }
+
+    void Deserialize(const ECS::json& j) override {
+        x = j["x"];
+        y = j["y"];
+    }
+
+    std::string GetTypeName() const override {
+        return "PositionComponent";
+    }
 };
 
 struct VelocityComponent : ECS::Component {
     float dx, dy;
-    // ... (implementation details)
+    VelocityComponent(float dx = 0, float dy = 0) : dx(dx), dy(dy) {}
+
+    ECS::json Serialize() const override {
+        return {{"dx", dx}, {"dy", dy}};
+    }
+
+    void Deserialize(const ECS::json& j) override {
+        dx = j["dx"];
+        dy = j["dy"];
+    }
+
+    std::string GetTypeName() const override {
+        return "VelocityComponent";
+    }
 };
 
-// Define your systems
 class MovementSystem : public ECS::System {
+public:
     void update(std::vector<std::shared_ptr<ECS::Entity>>& entities) override {
-        // ... (implementation details)
+        for (auto& entity : entities) {
+            if (entity->HasComponent<PositionComponent>() && entity->HasComponent<VelocityComponent>()) {
+                auto position = entity->GetComponent<PositionComponent>();
+                auto velocity = entity->GetComponent<VelocityComponent>();
+                position->x += velocity->dx;
+                position->y += velocity->dy;
+                std::cout << "Entity " << entity->GetId() << " moved to (" 
+                          << position->x << ", " << position->y << ")" << std::endl;
+            }
+        }
     }
 };
 
