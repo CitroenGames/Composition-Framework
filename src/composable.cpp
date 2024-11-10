@@ -1,5 +1,5 @@
 #include "composable.h"
-#include "transform.h"
+#include "components/transform.h"
 #include <algorithm>
 #include <queue>
 
@@ -179,7 +179,7 @@ Scene::NodePtr Scene::FindNodeByName(const std::string& name) {
 void Scene::Update(double deltaTime) {
     ForEachNode([deltaTime](NodePtr node) {
         if (node->IsActive()) {
-            for (const auto& [type, component] : node->components) {
+            for (const auto& [type, component] : node->GetComponents()) {
                 component->Update(deltaTime);
             }
         }

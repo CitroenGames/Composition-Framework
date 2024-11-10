@@ -109,10 +109,11 @@ public:
     }
 
     // Node properties
-    const std::string& GetName() const { return name; }
+    inline const std::string& GetName() const { return name; }
     void SetName(const std::string& newName) { name = newName; }
-    bool IsActive() const { return active; }
+    inline bool IsActive() const { return active; }
     void SetActive(bool value);
+    inline std::unordered_map<std::type_index, ComponentPtr> GetComponents() const { return components; }
     
     // Transform helper
     std::shared_ptr<Transform> GetTransform() const { return std::static_pointer_cast<Transform>(transform); }
