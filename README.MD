@@ -1,114 +1,132 @@
-# ECS (Entity Component System) Framework
+# Composable Framework
 
-This repository contains a simple implementation of an Entity Component System (ECS) framework in C++. The ECS architecture is commonly used in game development and simulations to create flexible and efficient systems for managing game objects and their behaviors.
+A lightweight, component-based composition framework for C++ applications. This framework provides a flexible architecture for building hierarchical structures with reusable components, perfect for game engines, UI systems, scene graphs, or any application requiring a tree-based composition system.
 
 ## Features
 
-- Entity management
-- Component-based architecture
-- System updates
-- Serialization and deserialization of world state
-- Tickable components for time-based updates
+- **Component-Based Architecture**: Easily extend objects with modular functionality
+- **Hierarchical Structure**: Full support for parent-child relationships
+- **Transform System**: Built-in 3D transform system with local/world space handling
+- **Scene Management**: Organize and manage complex hierarchies of objects
+- **Serialization**: Full JSON serialization support for saving/loading scenes
+- **Type-Safe**: Modern C++ design with compile-time type checking
+- **Memory Safe**: Smart pointer usage throughout the framework
 
-## Project Structure
+## Prerequisites
 
-The project consists of three main files:
+- C++17 or later
+- CMake 3.12 or later
 
-1. [`src/ecs.h`](https://github.com/CitroenGames/ECS/blob/master/src/ECS.h): Header file containing the core ECS classes and interfaces.
-2. [`src/ecs.cpp`](https://github.com/CitroenGames/ECS/blob/master/src/ECS.cpp): Implementation of the ECS framework.
-3. [`example/main.cpp`](https://github.com/CitroenGames/ECS/blob/master/example/main.cpp): Example usage of the ECS framework.
+## Basic Usage
 
-## Dependencies
-
-- [nlohmann/json](https://github.com/nlohmann/json): A modern C++ JSON library.
-
-## Usage
-
-Here's a basic example of how to use the ECS framework:
+### Creating a Scene with Objects
 
 ```cpp
-#include "ecs.h"
-#include <iostream>
-#include <fstream>
+#include "composable.h"
 
-struct PositionComponent : ECS::Component {
-    float x, y;
-    PositionComponent(float x = 0, float y = 0) : x(x), y(y) {}
+using namespace Composable;
 
-    ECS::json Serialize() const override {
-        return {{"x", x}, {"y", y}};
-    }
+// Create a scene
+auto scene = std::make_unique<Scene>();
 
-    void Deserialize(const ECS::json& j) override {
-        x = j["x"];
-        y = j["y"];
-    }
+// Create a parent node
+auto parent = scene->CreateNode("Parent");
+parent->GetTransform()->SetLocalPosition({0, 0, 0});
 
-    std::string GetTypeName() const override {
-        return "PositionComponent";
-    }
-};
+// Create a child node
+auto child = scene->CreateNode(parent, "Child");
+child->GetTransform()->SetLocalPosition({1, 0, 0});
+```
 
-struct VelocityComponent : ECS::Component {
-    float dx, dy;
-    VelocityComponent(float dx = 0, float dy = 0) : dx(dx), dy(dy) {}
+### Creating Custom Components
 
-    ECS::json Serialize() const override {
-        return {{"dx", dx}, {"dy", dy}};
-    }
-
-    void Deserialize(const ECS::json& j) override {
-        dx = j["dx"];
-        dy = j["dy"];
-    }
-
-    std::string GetTypeName() const override {
-        return "VelocityComponent";
-    }
-};
-
-class MovementSystem : public ECS::System {
+```cpp
+class CustomComponent : public Component {
 public:
-    void update(std::vector<std::shared_ptr<ECS::Entity>>& entities) override {
-        for (auto& entity : entities) {
-            if (entity->HasComponent<PositionComponent>() && entity->HasComponent<VelocityComponent>()) {
-                auto position = entity->GetComponent<PositionComponent>();
-                auto velocity = entity->GetComponent<VelocityComponent>();
-                position->x += velocity->dx;
-                position->y += velocity->dy;
-                std::cout << "Entity " << entity->GetId() << " moved to (" 
-                          << position->x << ", " << position->y << ")" << std::endl;
-            }
-        }
+    void Update(double dt) override {
+        // Update logic here
+    }
+
+    void OnAttach() override {
+        // Called when component is attached to a node
+    }
+
+    void OnDetach() override {
+        // Called when component is removed from a node
+    }
+
+    json Serialize() const override {
+        json j;
+        // Serialize component data
+        return j;
+    }
+
+    void Deserialize(const json& j) override {
+        // Deserialize component data
+    }
+
+    std::string GetTypeName() const override {
+        return "CustomComponent";
     }
 };
 
-int main() {
-    ECS::World world;
+// Adding the component to a node
+node->AddComponent<CustomComponent>();
+```
 
-    // Create entities and add components
-    auto entity = world.CreateEntity();
-    entity->AddComponent<PositionComponent>(0.0f, 0.0f);
-    entity->AddComponent<VelocityComponent>(1.0f, 1.0f);
+### Scene Traversal
 
-    // Add systems to the world
-    world.AddSystem(std::make_unique<MovementSystem>());
+```cpp
+// Find a node by name
+auto node = scene->FindNodeByName("MyNode");
 
-    // Update the world
-    world.Update(0.16f);
+// Iterate over all nodes
+scene->ForEachNode([](std::shared_ptr<Node> node) {
+    // Do something with each node
+});
+```
 
-    // Serialize and deserialize the world state
-    ECS::json serialized = world.Serialize();
-    // ... (save to file or transmit)
-    world.Deserialize(serialized);
+### Serialization
 
-    return 0;
+```cpp
+// Save scene to JSON
+json sceneData = scene->Serialize();
+
+// Load scene from JSON
+scene->Deserialize(sceneData);
+```
+
+## Advanced Features
+
+### Transform Hierarchy
+
+```cpp
+// Set up a transform hierarchy
+parent->GetTransform()->SetLocalPosition({1, 0, 0});
+child->GetTransform()->SetLocalPosition({0, 1, 0});
+
+// Child's world position will be (1, 1, 0)
+auto worldPos = child->GetTransform()->GetWorldPosition();
+```
+
+### Active State Management
+
+```cpp
+// Deactivate a node and all its children
+node->SetActive(false);
+
+// Check if a node is active
+if (node->IsActive()) {
+    // Node is active
 }
 ```
 
-## Building the Project
+## Best Practices
 
-To build the project, you'll need a C++ compiler that supports C++14 or later. Make sure you have the nlohmann/json library installed or included in your project.
+1. **Component Ownership**: Components should never outlive their owner nodes
+2. **Transform Usage**: Always use the Transform component for spatial operations
+3. **Scene Organization**: Use meaningful node names for better scene management
+4. **Memory Management**: Let the framework handle node/component lifecycle
 
 ## Contributing
 
@@ -116,4 +134,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Inspired by modern game engine architectures
+- Uses [nlohmann/json](https://github.com/nlohmann/json) for serialization
